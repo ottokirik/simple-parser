@@ -5,6 +5,10 @@ const SPEC = [
   // Whitespace:
   [/^\s+/, null],
 
+  // Comments:
+  [/^\/\/.*/, null],
+  [/^\/\*[\s\S]*?\*\//, null],
+
   // Numbers:
   [/^\d+/, 'NUMBER'],
 
