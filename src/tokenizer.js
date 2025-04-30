@@ -2,7 +2,13 @@
  * Tokenizer spec.
  */
 const SPEC = [
+  // Whitespace:
+  [/^\s+/, null],
+
+  // Numbers:
   [/^\d+/, 'NUMBER'],
+
+  // Strings:
   [/^"([^"]*)"/, 'STRING'],
   [/^'([^']*)'/, 'STRING'],
 ];
@@ -48,12 +54,18 @@ class Tokenizer {
     for (const [regexp, tokenType] of SPEC) {
       const tokenValue = this.match(regexp, str);
 
-      if (tokenValue !== null) {
-        return {
-          type: tokenType,
-          value: tokenValue,
-        };
+      if (tokenValue === null) {
+        continue;
       }
+
+      if (tokenType === null) {
+        return this.getNextToken();
+      }
+
+      return {
+        type: tokenType,
+        value: tokenValue,
+      };
     }
 
     throw new SyntaxError(`Unexpected token "${str[0]}"`);
