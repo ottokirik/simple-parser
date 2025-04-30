@@ -1,4 +1,13 @@
 /**
+ * Tokenizer spec.
+ */
+const SPEC = [
+  [/^\d+/, 'NUMBER'],
+  [/^"([^"]*)"/, 'STRING'],
+  [/^'([^']*)'/, 'STRING'],
+];
+
+/**
  * Tokenizer class.
  *
  * Lazily pulls a token from a stream.
@@ -36,37 +45,32 @@ class Tokenizer {
 
     const str = this.str.slice(this.cursor);
 
-    // Numbers:
-    if (!Number.isNaN(Number(str[0]))) {
-      let data = '';
+    for (const [regexp, tokenType] of SPEC) {
+      const tokenValue = this.match(regexp, str);
 
-      while (!Number.isNaN(Number(str[this.cursor]))) {
-        data += str[this.cursor];
-        this.cursor += 1;
+      if (tokenValue !== null) {
+        return {
+          type: tokenType,
+          value: tokenValue,
+        };
       }
-
-      return {
-        type: 'NUMBER',
-        value: data,
-      };
     }
 
-    // String:
-    if (str[0] === '"') {
-      let data = '';
+    throw new SyntaxError(`Unexpected token "${str[0]}"`);
+  }
 
-      do {
-        data += str[this.cursor];
-        this.cursor++;
-      } while (str[this.cursor] !== '"' && !this.isEOF());
+  /**
+   * Matches a token for a regular expression.
+   */
+  match(regexp, str) {
+    const matched = regexp.exec(str);
 
-      this.cursor += 1; // Skip the closing quote.
-
-      return {
-        type: 'STRING',
-        value: data,
-      };
+    if (matched === null) {
+      return null;
     }
+
+    this.cursor += matched[0].length;
+    return matched[0];
   }
 }
 

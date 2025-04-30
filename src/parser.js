@@ -70,7 +70,7 @@ class Parser {
 
     return {
       type: 'StringLiteral',
-      value: token.value.slice(1), // Remove the quotes.
+      value: token.value.slice(1, -1), // Remove the quotes.
     };
   }
 
