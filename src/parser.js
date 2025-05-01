@@ -30,7 +30,7 @@ class Parser {
    * Main entry point.
    *
    * Program
-   *   : Literal
+   *   : StatementList
    *   ;
    */
   Program() {
@@ -47,10 +47,10 @@ class Parser {
    *   ;
    */
 
-  StatementList() {
+  StatementList(stopLookahead = null) {
     const statementList = [this.Statement()];
 
-    while (this.lookahead !== null) {
+    while (this.lookahead !== null && this.lookahead.type !== stopLookahead) {
       statementList.push(this.Statement());
     }
 
@@ -60,10 +60,18 @@ class Parser {
   /**
    * Statement
    *   : ExpressionStatement
+   *   | BlockStatement
    *   ;
    */
   Statement() {
-    return this.ExpressionStatement();
+    switch (this.lookahead.type) {
+      case ';':
+        return this.EmptyStatement();
+      case '{':
+        return this.BlockStatement();
+      default:
+        return this.ExpressionStatement();
+    }
   }
 
   /**
@@ -78,6 +86,37 @@ class Parser {
     return {
       type: 'ExpressionStatement',
       expression,
+    };
+  }
+
+  /**
+   * BlockStatement
+   *   : '{' OptStatementList '}'
+   *   ;
+   */
+  BlockStatement() {
+    this.eat('{');
+
+    const body = this.lookahead.type === '}' ? [] : this.StatementList('}');
+
+    this.eat('}');
+
+    return {
+      type: 'BlockStatement',
+      body,
+    };
+  }
+
+  /**
+   * EmptyStatement
+   *   : ';'
+   *   ;
+   */
+  EmptyStatement() {
+    this.eat(';');
+
+    return {
+      type: 'EmptyStatement',
     };
   }
 
