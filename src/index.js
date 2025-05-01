@@ -3,13 +3,7 @@ import { Parser } from './parser';
 const parser = new Parser();
 let program = `
 
-/**
- * Document comment
- */
-42;
-
-// Comment
-"Hello";
+2 * 2 + 3;
 
 `;
 let ast = parser.parse(program);

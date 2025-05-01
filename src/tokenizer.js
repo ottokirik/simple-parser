@@ -13,6 +13,12 @@ const SPEC = [
   [/^;/, ';'],
   [/^\{/, '{'],
   [/^\}/, '}'],
+  [/^\(/, '('],
+  [/^\)/, ')'],
+
+  // Math operator: +, -, *, /
+  [/^[+-]/, 'ADDITIVE_OPERATOR'],
+  [/^[*/]/, 'MULTIPLICATIVE_OPERATOR'],
 
   // Numbers:
   [/^\d+/, 'NUMBER'],
