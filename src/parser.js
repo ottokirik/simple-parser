@@ -500,11 +500,51 @@ class Parser {
 
   /**
    * LeftHandSideExpression
-   *   : PrimaryExpression
+   *   : MemberExpression
    *   ;
    */
   LeftHandSideExpression() {
-    return this.PrimaryExpression();
+    return this.MemberExpression();
+  }
+
+  /**
+   * MemberExpression
+   *   : PrimaryExpression
+   *   | MemberExpression '.' Identifier
+   *   | MemberExpression '[' Expression ']'
+   *   ;
+   */
+  MemberExpression() {
+    let object = this.PrimaryExpression();
+
+    while (this.lookahead.type === '.' || this.lookahead.type === '[') {
+      if (this.lookahead.type === '.') {
+        this.eat('.');
+        const property = this.Identifier();
+
+        object = {
+          type: 'MemberExpression',
+          computed: false,
+          object,
+          property,
+        };
+      }
+
+      if (this.lookahead.type === '[') {
+        this.eat('[');
+        const property = this.Expression();
+        this.eat(']');
+
+        object = {
+          type: 'MemberExpression',
+          computed: true,
+          object,
+          property,
+        };
+      }
+    }
+
+    return object;
   }
 
   /**
@@ -525,7 +565,7 @@ class Parser {
    * Extra check whether it's valid assignment target.
    */
   checkValidAssignmentTarget(node) {
-    if (node.type === 'Identifier') {
+    if (node.type === 'Identifier' || node.type === 'MemberExpression') {
       return node;
     }
 
