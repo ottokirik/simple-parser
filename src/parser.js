@@ -64,6 +64,7 @@ class Parser {
    *   | EmptyStatement
    *   | VariableStatement
    *   | IfStatement
+   *   | IterationStatement
    *   ;
    */
   Statement() {
@@ -76,9 +77,120 @@ class Parser {
         return this.VariableStatement();
       case 'if':
         return this.IfStatement();
+      case 'while':
+      case 'for':
+      case 'do':
+        return this.IterationStatement();
       default:
         return this.ExpressionStatement();
     }
+  }
+
+  /**
+   * IterationStatement
+   *   : WhileStatement
+   *   | ForStatement
+   *   | DoWhileStatement
+   *   ;
+   */
+  IterationStatement() {
+    switch (this.lookahead.type) {
+      case 'while':
+        return this.WhileStatement();
+      case 'for':
+        return this.ForStatement();
+      case 'do':
+        return this.DoWhileStatement();
+      default:
+        throw new SyntaxError(
+          `Unexpected token ${this.lookahead.value}, expected IterationStatement`,
+        );
+    }
+  }
+
+  /**
+   * WhileStatement
+   *   : 'while' '(' Expression ')' Statement
+   *   ;
+   */
+  WhileStatement() {
+    this.eat('while');
+
+    this.eat('(');
+    const test = this.Expression();
+    this.eat(')');
+
+    const body = this.Statement();
+
+    return {
+      type: 'WhileStatement',
+      test,
+      body,
+    };
+  }
+
+  /**
+   * ForStatement
+   *   : 'for' '(' OptForStatementInit ';' OptExpression ';' OptExpression ')' Statement
+   *   ;
+   */
+  ForStatement() {
+    this.eat('for');
+
+    this.eat('(');
+    const init = this.lookahead.type !== ';' ? this.ForStatementInit() : null;
+    this.eat(';');
+    const test = this.lookahead.type !== ';' ? this.Expression() : null;
+    this.eat(';');
+    const update = this.lookahead.type !== ')' ? this.Expression() : null;
+    this.eat(')');
+
+    const body = this.Statement();
+
+    return {
+      type: 'ForStatement',
+      init,
+      test,
+      update,
+      body,
+    };
+  }
+
+  /**
+   * ForStatementInit
+   *   : VariableStatementInit
+   *   | Expression
+   *   ;
+   */
+  ForStatementInit() {
+    if (this.lookahead.type === 'let') {
+      return this.VariableStatementInit();
+    }
+
+    return this.Expression();
+  }
+
+  /**
+   * DoWhileStatement
+   *   : 'do' Statement 'while' '(' Expression ')' ';'
+   *   ;
+   */
+  DoWhileStatement() {
+    this.eat('do');
+
+    const body = this.Statement();
+    this.eat('while');
+
+    this.eat('(');
+    const test = this.Expression();
+    this.eat(')');
+    this.eat(';');
+
+    return {
+      type: 'DoWhileStatement',
+      body,
+      test,
+    };
   }
 
   /**
@@ -103,19 +215,30 @@ class Parser {
   }
 
   /**
-   * VariableStatement
-   *   : 'let' VariableDeclarationList ';'
+   * VariableStatementInit
+   *   : 'let' VariableDeclarationList
    *   ;
    */
-  VariableStatement() {
+  VariableStatementInit() {
     this.eat('let');
     const declarations = this.VariableDeclarationList();
-    this.eat(';');
 
     return {
       type: 'VariableStatement',
       declarations,
     };
+  }
+
+  /**
+   * VariableStatement
+   *   : 'let' VariableDeclarationList ';'
+   *   ;
+   */
+  VariableStatement() {
+    const variableStatement = this.VariableStatementInit();
+    this.eat(';');
+
+    return variableStatement;
   }
 
   /**
