@@ -223,11 +223,11 @@ class Parser {
 
   /**
    * AssignmentExpression
-   *   : RelationalExpression
+   *   : LogicalORExpression
    *   | LeftHandSideExpression AssignmentOperator AssignmentExpression
    */
   AssignmentExpression() {
-    const left = this.RelationalExpression();
+    const left = this.LogicalORExpression();
 
     if (!this.isAssignmentOperator(this.lookahead.type)) {
       return left;
@@ -239,6 +239,65 @@ class Parser {
       left: this.checkValidAssignmentTarget(left),
       right: this.AssignmentExpression(),
     };
+  }
+
+  /**
+   * Logical OR expression.
+   *
+   *   x || y
+   *
+   * LogicalORExpression
+   *   : LogicalANDExpression LOGICAL_OR LogicalORExpression
+   *   | LogicalORExpression
+   *   ;
+   */
+  LogicalORExpression() {
+    return this.LogicalExpression('LogicalANDExpression', 'LOGICAL_OR');
+  }
+
+  /**
+   * Logical AND expression.
+   *
+   *   x && y
+   *
+   * LogicalANDExpression
+   *   : EqualityExpression LOGICAL_AND LogicalANDExpression
+   *   | EqualityExpression
+   *   ;
+   */
+  LogicalANDExpression() {
+    return this.LogicalExpression('EqualityExpression', 'LOGICAL_AND');
+  }
+
+  LogicalExpression(builderName, operatorToken) {
+    let left = this[builderName]();
+
+    while (this.lookahead.type === operatorToken) {
+      // Operator
+      const operator = this.eat(operatorToken).value;
+      const right = this[builderName]();
+
+      left = {
+        type: 'LogicalExpression',
+        operator,
+        left,
+        right,
+      };
+    }
+
+    return left;
+  }
+
+  /**
+   * EQUALITY_OPERATOR: ==, !=
+   *
+   * EqualityExpression
+   *   : RelationalExpression EQUALITY_OPERATOR EqualityExpression
+   *   | RelationalExpression
+   *   ;
+   */
+  EqualityExpression() {
+    return this.BinaryExpression('RelationalExpression', 'EQUALITY_OPERATOR');
   }
 
   /**
@@ -382,7 +441,13 @@ class Parser {
    * Whether the token is a literal.
    */
   isLiteral(tokenType) {
-    return tokenType === 'NUMBER' || tokenType === 'STRING';
+    return (
+      tokenType === 'NUMBER' ||
+      tokenType === 'STRING' ||
+      tokenType === 'true' ||
+      tokenType === 'false' ||
+      tokenType === 'null'
+    );
   }
 
   /**
@@ -402,6 +467,8 @@ class Parser {
    * Literal
    *   : NumericLiteral
    *   | StringLiteral
+   *   | BooleanLiteral
+   *   | NullLiteral
    *   ;
    */
 
@@ -411,11 +478,46 @@ class Parser {
         return this.NumericLiteral();
       case 'STRING':
         return this.StringLiteral();
+      case 'true':
+        return this.BooleanLiteral(true);
+      case 'false':
+        return this.BooleanLiteral(false);
+      case 'null':
+        return this.NullLiteral();
       default:
         throw new SyntaxError(
           `Unexpected token ${this.lookahead.value}, expected Literal`,
         );
     }
+  }
+
+  /**
+   * BooleanLiteral
+   *   : 'true'
+   *   | 'false'
+   *   ;
+   */
+  BooleanLiteral(value) {
+    this.eat(value ? 'true' : 'false');
+
+    return {
+      type: 'BooleanLiteral',
+      value,
+    };
+  }
+
+  /**
+   * NullLiteral
+   *   : 'null'
+   *   ;
+   */
+  NullLiteral() {
+    this.eat('null');
+
+    return {
+      type: 'NullLiteral',
+      value: null,
+    };
   }
 
   /**
