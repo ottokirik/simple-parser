@@ -61,6 +61,8 @@ class Parser {
    * Statement
    *   : ExpressionStatement
    *   | BlockStatement
+   *   | EmptyStatement
+   *   | VariableStatement
    *   ;
    */
   Statement() {
@@ -69,9 +71,75 @@ class Parser {
         return this.EmptyStatement();
       case '{':
         return this.BlockStatement();
+      case 'let':
+        return this.VariableStatement();
       default:
         return this.ExpressionStatement();
     }
+  }
+
+  /**
+   * VariableStatement
+   *   : 'let' VariableDeclarationList ';'
+   *   ;
+   */
+  VariableStatement() {
+    this.eat('let');
+    const declarations = this.VariableDeclarationList();
+    this.eat(';');
+
+    return {
+      type: 'VariableStatement',
+      declarations,
+    };
+  }
+
+  /**
+   * VariableDeclarationList
+   *   : VariableDeclaration
+   *   | VariableDeclarationList ',' VariableDeclaration
+   *   ;
+   */
+  VariableDeclarationList() {
+    const declarations = [];
+
+    do {
+      declarations.push(this.VariableDeclaration());
+    } while (this.lookahead.type === ',' && this.eat(','));
+
+    return declarations;
+  }
+
+  /**
+   * VariableDeclaration
+   *   : Identifier OptVariableInitializer
+   *   ;
+   */
+  VariableDeclaration() {
+    const id = this.Identifier();
+
+    // OptVariableInitializer
+    const init =
+      this.lookahead.type !== ';' && this.lookahead.type !== ','
+        ? this.VariableInitializer()
+        : null;
+
+    return {
+      type: 'VariableDeclaration',
+      id,
+      init,
+    };
+  }
+
+  /**
+   * VariableInitializer
+   *   : SIMPLE_ASSIGNMENT AssignmentExpression
+   *   ;
+   */
+  VariableInitializer() {
+    this.eat('SIMPLE_ASSIGNMENT');
+
+    return this.AssignmentExpression();
   }
 
   /**
