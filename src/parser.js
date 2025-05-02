@@ -63,6 +63,7 @@ class Parser {
    *   | BlockStatement
    *   | EmptyStatement
    *   | VariableStatement
+   *   | IfStatement
    *   ;
    */
   Statement() {
@@ -73,9 +74,32 @@ class Parser {
         return this.BlockStatement();
       case 'let':
         return this.VariableStatement();
+      case 'if':
+        return this.IfStatement();
       default:
         return this.ExpressionStatement();
     }
+  }
+
+  /**
+   * IfStatement
+   *   : 'if' '(' Expression ')' Statement
+   *   | 'if' '(' Expression ')' Statement 'else' Statement
+   *   ;
+   */
+  IfStatement() {
+    this.eat('if');
+    this.eat('(');
+    const test = this.Expression();
+    this.eat(')');
+
+    const consequent = this.Statement();
+    const alternate =
+      this.lookahead !== null && this.lookahead.type === 'else'
+        ? this.eat('else') && this.Statement()
+        : null;
+
+    return { type: 'IfStatement', test, consequent, alternate };
   }
 
   /**
@@ -199,11 +223,11 @@ class Parser {
 
   /**
    * AssignmentExpression
-   *   : AdditiveExpression
+   *   : RelationalExpression
    *   | LeftHandSideExpression AssignmentOperator AssignmentExpression
    */
   AssignmentExpression() {
-    const left = this.AdditiveExpression();
+    const left = this.RelationalExpression();
 
     if (!this.isAssignmentOperator(this.lookahead.type)) {
       return left;
@@ -215,6 +239,18 @@ class Parser {
       left: this.checkValidAssignmentTarget(left),
       right: this.AssignmentExpression(),
     };
+  }
+
+  /**
+   * RELATIONAL_OPERATOR: >, >=, <, <=
+   *
+   * RelationalExpression
+   *   : AdditiveExpression
+   *   | AdditiveExpression RELATIONAL_OPERATOR RelationalExpression
+   *   ;
+   */
+  RelationalExpression() {
+    return this.BinaryExpression('AdditiveExpression', 'RELATIONAL_OPERATOR');
   }
 
   /**
