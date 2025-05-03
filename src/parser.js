@@ -500,11 +500,82 @@ class Parser {
 
   /**
    * LeftHandSideExpression
-   *   : MemberExpression
+   *   : CallMemberExpression
    *   ;
    */
   LeftHandSideExpression() {
-    return this.MemberExpression();
+    return this.CallMemberExpression();
+  }
+
+  /**
+   * CallMemberExpression
+   *   : MemberExpression
+   *   | CallExpression
+   *   ;
+   */
+  CallMemberExpression() {
+    // Member part, might be a part of a call:
+    const member = this.MemberExpression();
+
+    if (this.lookahead.type === '(') {
+      // Call part:
+      return this.CallExpression(member);
+    }
+
+    return member;
+  }
+
+  /**
+   * CallExpression
+   *   : Callee Arguments
+   *   ;
+   *
+   * Callee
+   *   : MemberExpression
+   *   | CallExpression
+   *   ;
+   */
+  CallExpression(callee) {
+    let callExpression = {
+      type: 'CallExpression',
+      callee,
+      arguments: this.Arguments(),
+    };
+
+    if (this.lookahead.type === '(') {
+      callExpression = this.CallExpression(callExpression);
+    }
+
+    return callExpression;
+  }
+
+  /**
+   * Arguments
+   *   : '(' OptArgumentList ')'
+   *   ;
+   */
+  Arguments() {
+    this.eat('(');
+    const argumentList = this.lookahead.type === ')' ? [] : this.ArgumentList();
+    this.eat(')');
+
+    return argumentList;
+  }
+
+  /**
+   * ArgumentList
+   *   : AssignmentExpression
+   *   | ArgumentList ',' AssignmentExpression
+   *   ;
+   */
+  ArgumentList() {
+    const argumentList = [];
+
+    do {
+      argumentList.push(this.AssignmentExpression());
+    } while (this.lookahead.type === ',' && this.eat(','));
+
+    return argumentList;
   }
 
   /**
